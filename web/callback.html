@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>Callback</title>
+<script>
+  if (window.opener) {
+    window.opener.postMessage(window.location.href, window.location.origin);
+    window.close();
+  }
+</script>
