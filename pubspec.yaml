@@ -30,10 +30,33 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Solid Pod stack — solidui wraps solidpod and solid_auth internally
+  solidui: ^0.1.0          # SolidLogin, SolidScaffold, SolidAuthHandler
+  solidpod: ^0.10.1        # readPod, writePod, getDirUrl, getResourcesInContainer
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
+  # Auth token local storage
+  flutter_secure_storage: ^10.0.0
+
+  # State management
+  flutter_riverpod: ^3.1.0  # pin to 3.1.0 — 3.2.x has json_serializable conflicts
+
+  # Charting
+  fl_chart: ^0.70.2
+
+  # Formatting (dates, currencies)
+  intl: ^0.20.1
+
+  # UUID generation
+  uuid: ^4.5.1
+
+  # HTTP (used internally by solidpod — explicit pin avoids conflicts)
+  http: ^1.2.2
+
+  # Bill reminder notifications
+  flutter_local_notifications: ^18.0.1
+
+  # RDF / Turtle parsing
+  rdflib: ^0.2.12
 
 dev_dependencies:
   flutter_test:

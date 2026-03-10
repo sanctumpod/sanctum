@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Credentials
+.env
+test_credentials.json
+integration_test/fixtures/
