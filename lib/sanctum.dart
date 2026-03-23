@@ -25,23 +25,27 @@
 
 library;
 
+// Group 1: Flutter/Dart SDK imports.
 import 'package:flutter/material.dart';
 
+// Group 2: Third-party package imports.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:solidpod/solidpod.dart' show getWebId;
 import 'package:solidui/solidui.dart';
 
+// Group 3: Local package imports.
 import 'package:sanctum/constants/app.dart';
 import 'package:sanctum/home.dart';
+import 'package:sanctum/screens/onboarding/welcome_screen.dart';
 import 'package:sanctum/theme/app_theme.dart';
 
 /// The root widget of the Sanctum application.
 ///
-/// Configures [SolidAuthHandler] on initialisation and wraps the login flow
-/// around [Home] via [SolidLogin].
-
+/// Configures [SolidAuthHandler] on initialisation, checks for an existing
+/// session via [getWebId], and routes returning users directly to [Home]
+/// while first-time users are shown [WelcomeScreen].
 class Sanctum extends ConsumerStatefulWidget {
   /// Creates the root Sanctum widget.
-
   const Sanctum({super.key});
 
   @override
@@ -49,12 +53,17 @@ class Sanctum extends ConsumerStatefulWidget {
 }
 
 class _SanctumState extends ConsumerState<Sanctum> {
+  /// Whether the async session check has completed.
+  bool _sessionChecked = false;
+
+  /// Whether a valid session (non-null webId) was found on launch.
+  bool _hasSession = false;
+
   @override
   void initState() {
     super.initState();
 
     // Configure the Solid authentication handler with app-specific settings.
-
     SolidAuthHandler.instance.configure(
       const SolidAuthConfig(
         appTitle: kAppTitle,
@@ -62,19 +71,48 @@ class _SanctumState extends ConsumerState<Sanctum> {
         defaultServerUrl: kDefaultServerUrl,
       ),
     );
+
+    // Check for an existing session after the first frame so that the
+    // Navigator is available if needed.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _checkExistingSession(),
+    );
+  }
+
+  /// Reads the persisted webId from solidpod's secure storage.
+  ///
+  /// If a session exists the build method routes to [Home], bypassing
+  /// onboarding. If no session exists [WelcomeScreen] is shown instead.
+  Future<void> _checkExistingSession() async {
+    final webId = await getWebId();
+    if (!mounted) return;
+
+    setState(() {
+      _hasSession = webId != null && webId.isNotEmpty;
+      _sessionChecked = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Show a loading indicator while the session check is in progress.
+    if (!_sessionChecked) {
+      return MaterialApp(
+        title: kAppTitle,
+        debugShowCheckedModeBanner: false,
+        theme: SanctumTheme.darkTheme,
+        home: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: kAppTitle,
       debugShowCheckedModeBanner: false,
       theme: SanctumTheme.darkTheme,
-      home: const SolidLogin(
-        appDirectory: kAppDirectory,
-        webID: kDefaultServerUrl,
-        child: Home(),
-      ),
+      // Returning users land directly on Home; first-time users see onboarding.
+      home: _hasSession ? const Home() : const WelcomeScreen(),
     );
   }
 }

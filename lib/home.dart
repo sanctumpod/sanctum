@@ -25,10 +25,14 @@
 
 library;
 
+// Group 1: Flutter/Dart SDK imports.
 import 'package:flutter/material.dart';
 
+// Group 2: Third-party package imports.
+import 'package:solidpod/solidpod.dart' show getWebId;
 import 'package:solidui/solidui.dart';
 
+// Group 3: Local package imports.
 import 'package:sanctum/screens/bills_screen.dart';
 import 'package:sanctum/screens/budgets_screen.dart';
 import 'package:sanctum/screens/dashboard_screen.dart';
@@ -36,38 +40,48 @@ import 'package:sanctum/screens/transactions_screen.dart';
 
 /// Main navigation host widget using [SolidScaffold].
 ///
-/// Presents the four primary sections of Sanctum as menu items.
-
+/// Presents the four primary sections of Sanctum as menu items and
+/// populates the nav drawer with the authenticated user's webId.
 class Home extends StatelessWidget {
   /// Creates the Home navigation widget.
-
   const Home({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const SolidScaffold(
-      menu: [
-        SolidMenuItem(
-          title: 'Dashboard',
-          icon: Icons.dashboard,
-          child: DashboardScreen(),
-        ),
-        SolidMenuItem(
-          title: 'Transactions',
-          icon: Icons.receipt_long,
-          child: TransactionsScreen(),
-        ),
-        SolidMenuItem(
-          title: 'Budgets',
-          icon: Icons.account_balance_wallet,
-          child: BudgetsScreen(),
-        ),
-        SolidMenuItem(
-          title: 'Bills',
-          icon: Icons.calendar_today,
-          child: BillsScreen(),
-        ),
-      ],
+    // Use FutureBuilder to read the persisted webId without converting to
+    // a StatefulWidget — avoids unnecessary rebuild complexity.
+    return FutureBuilder<String?>(
+      future: getWebId(),
+      builder: (context, snapshot) {
+        return SolidScaffold(
+          userInfo: SolidNavUserInfo(
+            webId: snapshot.data,
+            showWebId: true,
+          ),
+          menu: const [
+            SolidMenuItem(
+              title: 'Dashboard',
+              icon: Icons.dashboard,
+              child: DashboardScreen(),
+            ),
+            SolidMenuItem(
+              title: 'Transactions',
+              icon: Icons.receipt_long,
+              child: TransactionsScreen(),
+            ),
+            SolidMenuItem(
+              title: 'Budgets',
+              icon: Icons.account_balance_wallet,
+              child: BudgetsScreen(),
+            ),
+            SolidMenuItem(
+              title: 'Bills',
+              icon: Icons.calendar_today,
+              child: BillsScreen(),
+            ),
+          ],
+        );
+      },
     );
   }
 }
