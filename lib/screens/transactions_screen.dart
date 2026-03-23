@@ -1,4 +1,4 @@
-/// Entry point for the Sanctum application.
+/// Placeholder Transactions screen.
 //
 // Time-stamp: <>
 //
@@ -27,12 +27,17 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+/// Placeholder for the Transactions section of Sanctum.
 
-import 'package:sanctum/sanctum.dart';
+class TransactionsScreen extends StatelessWidget {
+  /// Creates the Transactions placeholder screen.
 
-/// Launches the Sanctum application wrapped in a [ProviderScope].
+  const TransactionsScreen({super.key});
 
-void main() {
-  runApp(const ProviderScope(child: Sanctum()));
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('Transactions'),
+    );
+  }
 }

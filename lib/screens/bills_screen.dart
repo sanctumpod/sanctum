@@ -1,4 +1,4 @@
-/// Entry point for the Sanctum application.
+/// Placeholder Bills screen.
 //
 // Time-stamp: <>
 //
@@ -27,12 +27,17 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+/// Placeholder for the Bills section of Sanctum.
 
-import 'package:sanctum/sanctum.dart';
+class BillsScreen extends StatelessWidget {
+  /// Creates the Bills placeholder screen.
 
-/// Launches the Sanctum application wrapped in a [ProviderScope].
+  const BillsScreen({super.key});
 
-void main() {
-  runApp(const ProviderScope(child: Sanctum()));
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('Bills'),
+    );
+  }
 }

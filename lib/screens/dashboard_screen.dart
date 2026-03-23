@@ -1,4 +1,4 @@
-/// Entry point for the Sanctum application.
+/// Placeholder Dashboard screen.
 //
 // Time-stamp: <>
 //
@@ -27,12 +27,17 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+/// Placeholder for the Dashboard section of Sanctum.
 
-import 'package:sanctum/sanctum.dart';
+class DashboardScreen extends StatelessWidget {
+  /// Creates the Dashboard placeholder screen.
 
-/// Launches the Sanctum application wrapped in a [ProviderScope].
+  const DashboardScreen({super.key});
 
-void main() {
-  runApp(const ProviderScope(child: Sanctum()));
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('Dashboard'),
+    );
+  }
 }

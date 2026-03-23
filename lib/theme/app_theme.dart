@@ -118,7 +118,7 @@ class SanctumTheme {
           onSecondary: textOnAccent,
           onSurface: textPrimary,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: backgroundCard,
           elevation: cardElevation,
           shape: RoundedRectangleBorder(
