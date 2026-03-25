@@ -30,7 +30,7 @@ import 'package:flutter/material.dart';
 import 'package:solidui/solidui.dart';
 
 import 'package:sanctum/constants/app.dart';
-import 'package:sanctum/screens/onboarding/confirmation_screen.dart';
+import 'package:sanctum/home.dart';
 import 'package:sanctum/theme/app_theme.dart';
 
 /// The second onboarding screen where the user connects their private vault.
@@ -48,6 +48,9 @@ class ConnectScreen extends StatefulWidget {
 class _ConnectScreenState extends State<ConnectScreen> {
   /// Controller for the server URL input field.
   late final TextEditingController _serverController;
+
+  /// Whether the vault connection is in progress.
+  bool _isConnecting = false;
 
   @override
   void initState() {
@@ -92,8 +95,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   /// Launches the Solid login flow using the server URL entered by the user.
   ///
-  /// On successful authentication [SolidLogin] renders [ConfirmationScreen].
+  /// Sets [_isConnecting] to show a loading state on the button, then
+  /// navigates to [SolidLogin] which handles the full OAuth flow.
   void _connectVault() {
+    setState(() => _isConnecting = true);
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -102,7 +108,13 @@ class _ConnectScreenState extends State<ConnectScreen> {
           webID: _serverController.text.trim(),
           image: const AssetImage('assets/images/app_image.png'),
           logo: const AssetImage('assets/images/app_icon.png'),
-          child: const ConfirmationScreen(),
+          snackbarConfig: const SnackbarConfig(
+            backgroundColor: SanctumTheme.backgroundElevated,
+            textColor: SanctumTheme.textPrimary,
+            actionTextColor: SanctumTheme.accentIndigo,
+            borderRadius: SanctumTheme.cardRadius,
+          ),
+          child: const Home(),
         ),
       ),
     );
@@ -187,8 +199,17 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
               // Connect My Vault button — exact label required by sprint spec.
               ElevatedButton(
-                onPressed: _connectVault,
-                child: const Text('Connect My Vault'),
+                onPressed: _isConnecting ? null : _connectVault,
+                child: _isConnecting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: SanctumTheme.textOnAccent,
+                        ),
+                      )
+                    : const Text('Connect My Vault'),
               ),
 
               const SizedBox(height: 48),

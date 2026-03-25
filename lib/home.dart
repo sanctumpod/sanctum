@@ -58,6 +58,8 @@ class Home extends StatelessWidget {
             webId: snapshot.data,
             showWebId: true,
           ),
+          onLogout: (context) =>
+              SolidAuthHandler.instance.handleLogout(context),
           menu: const [
             SolidMenuItem(
               title: 'Dashboard',
