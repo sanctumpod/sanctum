@@ -100,6 +100,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
         builder: (_) => SolidLogin(
           appDirectory: kAppDirectory,
           webID: _serverController.text.trim(),
+          image: const AssetImage('assets/images/app_image.png'),
+          logo: const AssetImage('assets/images/app_icon.png'),
           child: const ConfirmationScreen(),
         ),
       ),

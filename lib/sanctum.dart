@@ -69,6 +69,8 @@ class _SanctumState extends ConsumerState<Sanctum> {
         appTitle: kAppTitle,
         appDirectory: kAppDirectory,
         defaultServerUrl: kDefaultServerUrl,
+        appImage: AssetImage('assets/images/app_image.png'),
+        appLogo: AssetImage('assets/images/app_icon.png'),
       ),
     );
 
