@@ -54,6 +54,7 @@ dependencies:
 
   # Bill reminder notifications
   flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0          # Transitive dep of flutter_local_notifications — pinned explicitly for TZDateTime
 
   # RDF / Turtle parsing
   rdflib: ^0.2.12
