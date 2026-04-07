@@ -127,7 +127,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
       appBar: AppBar(
         backgroundColor: SanctumTheme.backgroundPrimary,
         elevation: 0,
-        leading: BackButton(color: SanctumTheme.textSecondary),
+        leading: const BackButton(color: SanctumTheme.textSecondary),
       ),
       body: SafeArea(
         child: Padding(

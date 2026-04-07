@@ -25,14 +25,35 @@
 
 library;
 
+// Group 1: Flutter/Dart SDK imports.
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+// Group 2: Third-party package imports.
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
 
+// Group 3: Local package imports.
 import 'package:sanctum/sanctum.dart';
 
-/// Launches the Sanctum application wrapped in a [ProviderScope].
+/// Initialises platform services then launches the Sanctum application.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-void main() {
+  // Initialise timezone database — required by flutter_local_notifications.
+  tz.initializeTimeZones();
+
+  // Initialise local notifications on supported mobile platforms only.
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    const initSettings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(),
+    );
+    await FlutterLocalNotificationsPlugin().initialize(initSettings);
+  }
+
   runApp(const ProviderScope(child: Sanctum()));
 }
