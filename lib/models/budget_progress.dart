@@ -47,8 +47,23 @@ class BudgetProgress {
   final double spent;
 
   /// Fraction of limit spent — clamped to [0.0, 1.0] for progress bars.
-  double get fraction => (spent / budget.monthlyLimit).clamp(0.0, 1.0);
+  ///
+  /// Returns 0.0 if [Budget.monthlyLimit] is zero to avoid division by zero.
+  double get fraction {
+    if (budget.monthlyLimit <= 0) return 0.0;
+    return (spent / budget.monthlyLimit).clamp(0.0, 1.0);
+  }
 
   /// Whether spending has reached or exceeded the monthly limit.
   bool get isOverBudget => spent >= budget.monthlyLimit;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BudgetProgress &&
+          other.budget == budget &&
+          other.spent == spent;
+
+  @override
+  int get hashCode => Object.hash(budget, spent);
 }
