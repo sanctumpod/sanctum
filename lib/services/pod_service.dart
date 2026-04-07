@@ -30,8 +30,14 @@ import 'package:flutter/foundation.dart';
 
 // Group 2: Third-party package imports.
 import 'package:rdflib/rdflib.dart';
-// ignore: unused_import
-import 'package:solidpod/solidpod.dart';
+import 'package:solidpod/solidpod.dart'
+    show
+        SolidFunctionCallStatus,
+        deleteFile,
+        getDirUrl,
+        getResourcesInContainer,
+        readPod,
+        writePod;
 
 // Group 3: Local package imports.
 import 'package:sanctum/models/bill_reminder.dart';
@@ -46,6 +52,20 @@ import 'package:sanctum/services/app_error.dart';
 ///
 /// All methods throw [AppError] on failure — never raw exceptions.
 class PodService {
+  // ── Pod path constants ───────────────────────────────────────────────────────
+
+  /// Data directory on the Pod (relative to `sanctum/data/`).
+  static const String _txDir = 'transactions';
+
+  /// Data directory on the Pod (relative to `sanctum/data/`).
+  static const String _budgetDir = 'budgets';
+
+  /// Data directory on the Pod (relative to `sanctum/data/`).
+  static const String _reminderDir = 'reminders';
+
+  /// App directory name on the Pod (for full-path `getDirUrl` calls).
+  static const String _appDataBase = 'sanctum/data';
+
   // ── RDF prefixes ────────────────────────────────────────────────────────────
   static const String _fin = 'http://sanctum.app/finance#';
   static const String _xsd = 'http://www.w3.org/2001/XMLSchema#';
@@ -57,7 +77,15 @@ class PodService {
   /// Creates the `sanctum/transactions/` directory on first write.
   /// Throws [AppError.networkError] if the Pod is unreachable.
   Future<void> saveTransaction(Transaction tx) async {
-    throw UnimplementedError();
+    try {
+      final path = '$_txDir/tx_${tx.id}.enc.ttl';
+      await writePod(path, _transactionToTurtle(tx), encrypted: true);
+    } on AppError {
+      rethrow;
+    } catch (e) {
+      debugPrint('saveTransaction error: $e');
+      throw AppError.networkError;
+    }
   }
 
   /// Reads all transactions from the Pod, sorted newest-first.
@@ -65,14 +93,55 @@ class PodService {
   /// Returns an empty list if the directory does not yet exist.
   /// Skips files that cannot be parsed rather than throwing.
   Future<List<Transaction>> loadAllTransactions() async {
-    throw UnimplementedError();
+    try {
+      final dirUrl = await getDirUrl('$_appDataBase/$_txDir');
+      final resources = await getResourcesInContainer(dirUrl);
+      final results = <Transaction>[];
+
+      // Iterate each file in the transactions directory.
+      for (final file in resources.files) {
+        if (!file.endsWith('.enc.ttl')) continue;
+
+        String content;
+        try {
+          content = await readPod('$_txDir/$file');
+        } catch (e) {
+          debugPrint('loadAllTransactions: skipping unreadable file $file: $e');
+          continue;
+        }
+
+        // Skip error sentinel values returned by solidpod.
+        if (content == SolidFunctionCallStatus.fail.toString() ||
+            content == SolidFunctionCallStatus.notLoggedIn.toString()) {
+          continue;
+        }
+
+        try {
+          results.add(_transactionFromTurtle(content));
+        } on AppError {
+          debugPrint('loadAllTransactions: skipping corrupt file $file');
+        }
+      }
+
+      // Return sorted newest-first.
+      return results..sort((a, b) => b.date.compareTo(a.date));
+    } catch (e) {
+      if (e is AppError) rethrow;
+      debugPrint('loadAllTransactions error: $e');
+      return [];
+    }
   }
 
   /// Deletes the transaction with [id] from the Pod.
   ///
   /// Throws [AppError.fileNotFound] if the file does not exist.
   Future<void> deleteTransaction(String id) async {
-    throw UnimplementedError();
+    try {
+      await deleteFile('$_txDir/tx_$id.enc.ttl');
+    } catch (e) {
+      debugPrint('deleteTransaction error: $e');
+      throw AppError.networkError;
+    }
   }
 
   // ── Budget ──────────────────────────────────────────────────────────────────
@@ -81,19 +150,67 @@ class PodService {
   ///
   /// Throws [AppError.networkError] if the Pod is unreachable.
   Future<void> saveBudget(Budget budget) async {
-    throw UnimplementedError();
+    try {
+      final path = '$_budgetDir/budget_${budget.id}.enc.ttl';
+      await writePod(path, _budgetToTurtle(budget), encrypted: true);
+    } on AppError {
+      rethrow;
+    } catch (e) {
+      debugPrint('saveBudget error: $e');
+      throw AppError.networkError;
+    }
   }
 
   /// Reads all budgets from the Pod.
   ///
   /// Returns an empty list if the directory does not yet exist.
   Future<List<Budget>> loadAllBudgets() async {
-    throw UnimplementedError();
+    try {
+      final dirUrl = await getDirUrl('$_appDataBase/$_budgetDir');
+      final resources = await getResourcesInContainer(dirUrl);
+      final results = <Budget>[];
+
+      // Iterate each file in the budgets directory.
+      for (final file in resources.files) {
+        if (!file.endsWith('.enc.ttl')) continue;
+
+        String content;
+        try {
+          content = await readPod('$_budgetDir/$file');
+        } catch (e) {
+          debugPrint('loadAllBudgets: skipping unreadable file $file: $e');
+          continue;
+        }
+
+        // Skip error sentinel values returned by solidpod.
+        if (content == SolidFunctionCallStatus.fail.toString() ||
+            content == SolidFunctionCallStatus.notLoggedIn.toString()) {
+          continue;
+        }
+
+        try {
+          results.add(_budgetFromTurtle(content));
+        } on AppError {
+          debugPrint('loadAllBudgets: skipping corrupt file $file');
+        }
+      }
+
+      return results;
+    } catch (e) {
+      if (e is AppError) rethrow;
+      debugPrint('loadAllBudgets error: $e');
+      return [];
+    }
   }
 
   /// Deletes the budget with [id] from the Pod.
   Future<void> deleteBudget(String id) async {
-    throw UnimplementedError();
+    try {
+      await deleteFile('$_budgetDir/budget_$id.enc.ttl');
+    } catch (e) {
+      debugPrint('deleteBudget error: $e');
+      throw AppError.networkError;
+    }
   }
 
   // ── BillReminder ────────────────────────────────────────────────────────────
@@ -102,26 +219,76 @@ class PodService {
   ///
   /// Throws [AppError.networkError] if the Pod is unreachable.
   Future<void> saveBillReminder(BillReminder reminder) async {
-    throw UnimplementedError();
+    try {
+      final path = '$_reminderDir/reminder_${reminder.id}.enc.ttl';
+      await writePod(path, _reminderToTurtle(reminder), encrypted: true);
+    } on AppError {
+      rethrow;
+    } catch (e) {
+      debugPrint('saveBillReminder error: $e');
+      throw AppError.networkError;
+    }
   }
 
   /// Reads all bill reminders from the Pod, sorted by due date ascending.
   ///
   /// Returns an empty list if the directory does not yet exist.
   Future<List<BillReminder>> loadAllBillReminders() async {
-    throw UnimplementedError();
+    try {
+      final dirUrl = await getDirUrl('$_appDataBase/$_reminderDir');
+      final resources = await getResourcesInContainer(dirUrl);
+      final results = <BillReminder>[];
+
+      // Iterate each file in the reminders directory.
+      for (final file in resources.files) {
+        if (!file.endsWith('.enc.ttl')) continue;
+
+        String content;
+        try {
+          content = await readPod('$_reminderDir/$file');
+        } catch (e) {
+          debugPrint('loadAllBillReminders: skipping unreadable file $file: $e');
+          continue;
+        }
+
+        // Skip error sentinel values returned by solidpod.
+        if (content == SolidFunctionCallStatus.fail.toString() ||
+            content == SolidFunctionCallStatus.notLoggedIn.toString()) {
+          continue;
+        }
+
+        try {
+          results.add(_reminderFromTurtle(content));
+        } on AppError {
+          debugPrint('loadAllBillReminders: skipping corrupt file $file');
+        }
+      }
+
+      // Return sorted by due date ascending.
+      return results..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    } catch (e) {
+      if (e is AppError) rethrow;
+      debugPrint('loadAllBillReminders error: $e');
+      return [];
+    }
   }
 
   /// Overwrites the existing Pod file for [reminder] with new content.
   ///
   /// Used when marking a bill as paid or updating any field.
   Future<void> updateBillReminder(BillReminder reminder) async {
-    throw UnimplementedError();
+    // Overwrite delegates to saveBillReminder — same path, same content.
+    await saveBillReminder(reminder);
   }
 
   /// Deletes the bill reminder with [id] from the Pod.
   Future<void> deleteBillReminder(String id) async {
-    throw UnimplementedError();
+    try {
+      await deleteFile('$_reminderDir/reminder_$id.enc.ttl');
+    } catch (e) {
+      debugPrint('deleteBillReminder error: $e');
+      throw AppError.networkError;
+    }
   }
 
   // ── Transaction serialization ────────────────────────────────────────────────
