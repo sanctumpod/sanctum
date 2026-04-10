@@ -276,9 +276,22 @@ class PodService {
   /// Overwrites the existing Pod file for [reminder] with new content.
   ///
   /// Used when marking a bill as paid or updating any field.
+  /// Passes `overwrite: true` so writePod replaces the existing encrypted file.
   Future<void> updateBillReminder(BillReminder reminder) async {
-    // Overwrite delegates to saveBillReminder — same path, same content.
-    await saveBillReminder(reminder);
+    try {
+      final path = '$_reminderDir/reminder_${reminder.id}.enc.ttl';
+      await writePod(
+        path,
+        _reminderToTurtle(reminder),
+        encrypted: true,
+        overwrite: true,
+      );
+    } on AppError {
+      rethrow;
+    } catch (e) {
+      debugPrint('updateBillReminder error: $e');
+      throw AppError.networkError;
+    }
   }
 
   /// Deletes the bill reminder with [id] from the Pod.

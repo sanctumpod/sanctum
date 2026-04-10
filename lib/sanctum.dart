@@ -30,7 +30,7 @@ import 'package:flutter/material.dart';
 
 // Group 2: Third-party package imports.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:solidpod/solidpod.dart' show getWebId;
+import 'package:solidpod/solidpod.dart' show getWebId, setAppDirName;
 import 'package:solidui/solidui.dart';
 
 // Group 3: Local package imports.
@@ -86,6 +86,12 @@ class _SanctumState extends ConsumerState<Sanctum> {
   /// If a session exists the build method routes to [Home], bypassing
   /// onboarding. If no session exists [WelcomeScreen] is shown instead.
   Future<void> _checkExistingSession() async {
+    // Initialise the solidpod app directory name before any Pod operations.
+    // Without this call, appDirName remains '' and all Pod URLs get a double
+    // slash (e.g. ...Pods//encryption/enc-keys.ttl) causing every read/write
+    // to fail. SolidLogin normally sets this, but returning users bypass it.
+    await setAppDirName(kAppDirectory);
+
     final webId = await getWebId();
     if (!mounted) return;
 
