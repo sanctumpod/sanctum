@@ -217,7 +217,7 @@ class _IdleView extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 12),
-          _ColumnTable(),
+          const _ColumnTable(),
           const SizedBox(height: 8),
           Text(
             'Example:',
@@ -263,6 +263,9 @@ class _IdleView extends StatelessWidget {
 
 /// Renders the required/optional column reference table.
 class _ColumnTable extends StatelessWidget {
+  /// Creates the column table widget.
+  const _ColumnTable();
+
   @override
   Widget build(BuildContext context) {
     return Table(
@@ -286,6 +289,7 @@ class _ColumnTable extends StatelessWidget {
     );
   }
 
+  /// Returns a header [TableRow] with column label cells.
   TableRow _headerRow(BuildContext context) {
     final style = Theme.of(context).textTheme.labelLarge;
     return TableRow(
@@ -306,6 +310,7 @@ class _ColumnTable extends StatelessWidget {
     );
   }
 
+  /// Returns a data [TableRow] for a single CSV column definition.
   TableRow _dataRow(
     BuildContext context,
     String col,
