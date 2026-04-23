@@ -155,5 +155,19 @@ void main() {
       // Newest first.
       expect(result.parsed.first.date, DateTime(2026, 1, 20));
     });
+
+    test('handles header row wrapped in double-quotes spanning two lines', () {
+      // Regression: spreadsheet apps sometimes export the header as a single
+      // quoted field spanning two lines, making _parseLine treat all column
+      // names as one string.  The parser must recover and re-split by comma.
+      const csv = '"date,amount,merchant,category,notes\n"\n'
+          '2026-01-15,42.50,Woolies,Groceries,Weekly shop\n';
+
+      final result = CsvParser.parseTransactions(csv);
+
+      expect(result.missingColumns, isEmpty);
+      expect(result.parsed.length, 1);
+      expect(result.parsed.first.merchant, 'Woolies');
+    });
   });
 }

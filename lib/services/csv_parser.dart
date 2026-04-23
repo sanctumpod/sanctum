@@ -85,9 +85,17 @@ class CsvParser {
     }
 
     // Parse header row.
-    final headers = _parseLine(nonBlank.first)
+    var headers = _parseLine(nonBlank.first)
         .map((h) => h.trim().toLowerCase())
         .toList();
+
+    // Guard: if the entire header row was wrapped in quotes (a common
+    // spreadsheet export mistake), _parseLine returns one field containing
+    // all column names separated by commas.  Re-split it so parsing
+    // continues correctly.
+    if (headers.length == 1 && headers.first.contains(',')) {
+      headers = headers.first.split(',').map((h) => h.trim()).toList();
+    }
 
     // Check required columns.
     final missing = TransactionCsvFields.required
