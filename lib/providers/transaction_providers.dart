@@ -54,18 +54,29 @@ class TransactionListNotifier extends AsyncNotifier<List<Transaction>> {
   /// [PodService.saveTransaction]. A fresh UUID v4 is assigned to each
   /// transaction here because the CSV parser produces placeholder empty IDs.
   ///
-  /// The provider invalidates itself after all writes so the Transactions
-  /// screen immediately re-reads the Pod and shows the newly imported rows.
+  /// After all writes succeed the provider state is updated directly so the
+  /// Transactions screen shows the imported rows immediately — without waiting
+  /// for a round-trip Pod re-read. The combined list is re-sorted newest-first.
   ///
   /// Throws [AppError.networkError] on the first failed Pod write.
   Future<void> importMany(List<Transaction> transactions) async {
     const uuid = Uuid();
     final service = ref.read(podServiceProvider);
+    final saved = <Transaction>[];
+
     for (final tx in transactions) {
       // Assign a real UUID — the parsed tx carries an empty placeholder id.
-      await service.saveTransaction(tx.copyWith(id: uuid.v4()));
+      final withId = tx.copyWith(id: uuid.v4());
+      await service.saveTransaction(withId);
+      saved.add(withId);
     }
-    ref.invalidateSelf();
+
+    // Merge the newly saved transactions into the existing list and re-sort
+    // newest-first so the UI updates without a Pod round-trip.
+    final current = state.value ?? [];
+    final updated = [...current, ...saved]
+      ..sort((a, b) => b.date.compareTo(a.date));
+    state = AsyncValue.data(updated);
   }
 
   /// Deletes the transaction with [id] from the Pod and refreshes the list.

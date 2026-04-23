@@ -39,6 +39,7 @@ import 'package:sanctum/models/transaction.dart';
 import 'package:sanctum/providers/transaction_providers.dart';
 import 'package:sanctum/services/app_error.dart';
 import 'package:sanctum/services/csv_parser.dart';
+import 'package:sanctum/theme/app_theme.dart';
 
 /// Tracks which phase of the import flow is active.
 enum _ImportState { idle, preview, importing }
@@ -62,7 +63,6 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
   int _skippedRows = 0;
   String? _errorMessage;
 
-  // Formatters for the preview list.
   final _dateFmt = DateFormat('d MMM yyyy');
   final _currencyFmt = NumberFormat.currency(locale: 'en_AU', symbol: r'$');
 
@@ -106,8 +106,8 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
       setState(() {
         _errorMessage =
             'CSV is missing required columns: '
-            '${parseResult.missingColumns.join(", ")}.\n\n'
-            'Required: ${TransactionCsvFields.required.join(", ")}';
+            '${parseResult.missingColumns.join(', ')}.\n'
+            'Required: ${TransactionCsvFields.required.join(', ')}';
       });
       return;
     }
@@ -177,20 +177,15 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
             onPickAgain: _pickFile,
             onConfirm: _confirmImport,
           ),
-        _ImportState.importing => const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Saving to Pod…'),
-              ],
-            ),
-          ),
+        _ImportState.importing => const _ImportingView(),
       },
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Idle state
+// ---------------------------------------------------------------------------
 
 /// Shown before any file has been selected.
 class _IdleView extends StatelessWidget {
@@ -201,58 +196,243 @@ class _IdleView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Import transactions from a CSV file.',
-            style: Theme.of(context).textTheme.titleMedium,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+      children: [
+        // Intro header.
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: SanctumTheme.accentIndigo.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(SanctumTheme.cardRadius),
+            border: Border.all(
+              color: SanctumTheme.accentIndigo.withValues(alpha: 0.25),
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Your CSV must have these columns (header names are '
-            'case-insensitive):',
-            style: Theme.of(context).textTheme.bodyMedium,
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: SanctumTheme.accentIndigo.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.upload_file_outlined,
+                  color: SanctumTheme.accentIndigo,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Import from CSV',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Bulk-add transactions from a spreadsheet export.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          const _ColumnTable(),
-          const SizedBox(height: 8),
-          Text(
-            'Example:',
-            style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 24),
+
+        // Column spec table.
+        const Text(
+          'REQUIRED FORMAT',
+          style: TextStyle(
+            color: SanctumTheme.textTertiary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
           ),
-          const SizedBox(height: 4),
+        ),
+        const SizedBox(height: 10),
+        const _ColumnTable(),
+        const SizedBox(height: 20),
+
+        // Example block.
+        const Text(
+          'EXAMPLE',
+          style: TextStyle(
+            color: SanctumTheme.textTertiary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: SanctumTheme.backgroundCard,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: SanctumTheme.cardBorder),
+          ),
+          child: const Text(
+            'date,amount,merchant,category,notes\n'
+            '2026-01-15,42.50,Woolworths,Groceries,Weekly shop\n'
+            '2026-01-16,12.00,Spotify,Entertainment,',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 12,
+              color: SanctumTheme.textSecondary,
+              height: 1.6,
+            ),
+          ),
+        ),
+
+        // Error message.
+        if (errorMessage != null) ...[
+          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'date,amount,merchant,category,notes\n'
-              '2026-01-15,42.50,Woolworths,Groceries,Weekly shop\n'
-              '2026-01-16,12.00,Spotify,Entertainment,',
-              style: TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
-          ),
-          if (errorMessage != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              errorMessage!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
+              color: SanctumTheme.semanticError.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: SanctumTheme.semanticError.withValues(alpha: 0.35),
               ),
             ),
-          ],
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Pick CSV File'),
-              onPressed: onPickFile,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 16,
+                  color: SanctumTheme.semanticError,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(
+                      color: SanctumTheme.semanticError,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 28),
+
+        // Pick file button.
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.folder_open_outlined, size: 18),
+            label: const Text('Choose CSV File'),
+            onPressed: onPickFile,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Required/optional column reference table.
+class _ColumnTable extends StatelessWidget {
+  const _ColumnTable();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: SanctumTheme.backgroundCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: SanctumTheme.cardBorder),
+      ),
+      child: Column(
+        children: [
+          _tableRow(context, 'COLUMN', 'FORMAT', 'REQ.', isHeader: true),
+          _tableRow(context, 'date', 'YYYY-MM-DD', 'Required'),
+          _tableRow(context, 'amount', 'Positive decimal', 'Required'),
+          _tableRow(context, 'merchant', 'Any text', 'Required'),
+          _tableRow(context, 'category', 'Any text', 'Required'),
+          _tableRow(context, 'notes', 'Any text', 'Optional', isLast: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _tableRow(
+    BuildContext context,
+    String col,
+    String format,
+    String req, {
+    bool isHeader = false,
+    bool isLast = false,
+  }) {
+    final isRequired = req == 'Required';
+    final reqColor = isRequired ? SanctumTheme.semanticSuccess : SanctumTheme.textTertiary;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: SanctumTheme.cardBorder),
+              ),
+        color: isHeader
+            ? SanctumTheme.backgroundElevated.withValues(alpha: 0.6)
+            : null,
+        borderRadius: isLast
+            ? const BorderRadius.vertical(bottom: Radius.circular(12))
+            : isHeader
+                ? const BorderRadius.vertical(top: Radius.circular(12))
+                : null,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(
+              col,
+              style: isHeader
+                  ? const TextStyle(
+                      color: SanctumTheme.textTertiary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    )
+                  : const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 13,
+                      color: SanctumTheme.accentIndigo,
+                    ),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Text(
+              format,
+              style: TextStyle(
+                color: isHeader ? SanctumTheme.textTertiary : SanctumTheme.textSecondary,
+                fontSize: isHeader ? 11 : 12,
+                fontWeight: isHeader ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: isHeader ? 0.5 : 0,
+              ),
+            ),
+          ),
+          Text(
+            req,
+            style: TextStyle(
+              color: isHeader ? SanctumTheme.textTertiary : reqColor,
+              fontSize: isHeader ? 11 : 12,
+              fontWeight: isHeader ? FontWeight.w600 : FontWeight.w500,
+              letterSpacing: isHeader ? 0.5 : 0,
             ),
           ),
         ],
@@ -261,80 +441,9 @@ class _IdleView extends StatelessWidget {
   }
 }
 
-/// Renders the required/optional column reference table.
-class _ColumnTable extends StatelessWidget {
-  /// Creates the column table widget.
-  const _ColumnTable();
-
-  @override
-  Widget build(BuildContext context) {
-    return Table(
-      border: TableBorder.all(
-        color: Theme.of(context).dividerColor,
-        width: 0.5,
-      ),
-      columnWidths: const {
-        0: FlexColumnWidth(2),
-        1: FlexColumnWidth(3),
-        2: FlexColumnWidth(1),
-      },
-      children: [
-        _headerRow(context),
-        _dataRow(context, 'date', 'YYYY-MM-DD', 'Required'),
-        _dataRow(context, 'amount', 'Positive decimal', 'Required'),
-        _dataRow(context, 'merchant', 'Any string', 'Required'),
-        _dataRow(context, 'category', 'Any string', 'Required'),
-        _dataRow(context, 'notes', 'Any string', 'Optional'),
-      ],
-    );
-  }
-
-  /// Returns a header [TableRow] with column label cells.
-  TableRow _headerRow(BuildContext context) {
-    final style = Theme.of(context).textTheme.labelLarge;
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(6),
-          child: Text('Column', style: style),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(6),
-          child: Text('Format', style: style),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(6),
-          child: Text('', style: style),
-        ),
-      ],
-    );
-  }
-
-  /// Returns a data [TableRow] for a single CSV column definition.
-  TableRow _dataRow(
-    BuildContext context,
-    String col,
-    String format,
-    String req,
-  ) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(6),
-          child: Text(col, style: const TextStyle(fontFamily: 'monospace')),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(6),
-          child: Text(format, style: Theme.of(context).textTheme.bodySmall),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(6),
-          child: Text(req, style: Theme.of(context).textTheme.bodySmall),
-        ),
-      ],
-    );
-  }
-}
+// ---------------------------------------------------------------------------
+// Preview state
+// ---------------------------------------------------------------------------
 
 /// Shown after a file has been parsed — displays the transaction preview list.
 class _PreviewView extends StatelessWidget {
@@ -363,20 +472,41 @@ class _PreviewView extends StatelessWidget {
         // Summary banner.
         Container(
           width: double.infinity,
-          color: Theme.of(context).colorScheme.primary.withAlpha(31),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          decoration: BoxDecoration(
+            color: SanctumTheme.accentIndigo.withValues(alpha: 0.12),
+            border: const Border(
+              bottom: BorderSide(color: SanctumTheme.cardBorder),
+            ),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${transactions.length} transaction(s) ready to import',
-                style: Theme.of(context).textTheme.titleMedium,
+              Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    size: 16,
+                    color: SanctumTheme.semanticSuccess,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${transactions.length} transaction(s) ready to import',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: SanctumTheme.textPrimary,
+                        ),
+                  ),
+                ],
               ),
-              if (skippedRows > 0)
+              if (skippedRows > 0) ...[
+                const SizedBox(height: 4),
                 Text(
-                  '$skippedRows row(s) skipped (invalid data).',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  '$skippedRows row(s) skipped — invalid data.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: SanctumTheme.semanticWarning,
+                      ),
                 ),
+              ],
             ],
           ),
         ),
@@ -384,19 +514,80 @@ class _PreviewView extends StatelessWidget {
         // Transaction preview list.
         Expanded(
           child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             itemCount: transactions.length,
             itemBuilder: (context, index) {
               final tx = transactions[index];
-              return ListTile(
-                leading: Text(
-                  dateFmt.format(tx.date),
-                  style: Theme.of(context).textTheme.bodySmall,
+              final catColor = SanctumTheme.categoryColor(tx.category);
+              final catIcon = SanctumTheme.categoryIcon(tx.category);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
                 ),
-                title: Text(tx.merchant),
-                subtitle: Text(tx.category),
-                trailing: Text(
-                  currencyFmt.format(tx.amount),
-                  style: Theme.of(context).textTheme.titleMedium,
+                decoration: BoxDecoration(
+                  color: SanctumTheme.backgroundCard,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: SanctumTheme.cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: catColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(catIcon, size: 16, color: catColor),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tx.merchant,
+                            style: const TextStyle(
+                              color: SanctumTheme.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            tx.category,
+                            style: const TextStyle(
+                              color: SanctumTheme.textTertiary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          currencyFmt.format(tx.amount),
+                          style: const TextStyle(
+                            color: SanctumTheme.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          dateFmt.format(tx.date),
+                          style: const TextStyle(
+                            color: SanctumTheme.textTertiary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
             },
@@ -406,35 +597,92 @@ class _PreviewView extends StatelessWidget {
         // Error message if Pod save failed.
         if (errorMessage != null)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              errorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: SanctumTheme.semanticError.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: SanctumTheme.semanticError.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Text(
+                errorMessage!,
+                style: const TextStyle(
+                  color: SanctumTheme.semanticError,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
 
         // Action buttons.
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           child: Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: onPickAgain,
-                  child: const Text('Pick Another File'),
+                  child: const Text('Pick Another'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.upload_file_outlined, size: 18),
+                  label: Text('Import ${transactions.length}'),
                   onPressed: onConfirm,
-                  child: Text('Import ${transactions.length} Transaction(s)'),
                 ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Importing state
+// ---------------------------------------------------------------------------
+
+/// Full-screen loading indicator shown while transactions are being written.
+class _ImportingView extends StatelessWidget {
+  const _ImportingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: SanctumTheme.accentIndigo.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(18),
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Saving to Pod…',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Writing encrypted records to your SOLID Pod.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 }

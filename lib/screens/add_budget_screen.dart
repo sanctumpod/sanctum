@@ -38,6 +38,7 @@ import 'package:sanctum/models/budget.dart';
 import 'package:sanctum/providers/budget_providers.dart';
 import 'package:sanctum/screens/add_transaction_screen.dart';
 import 'package:sanctum/services/app_error.dart';
+import 'package:sanctum/theme/app_theme.dart';
 
 /// Form screen for creating a monthly spending budget.
 ///
@@ -99,22 +100,77 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final catColor = SanctumTheme.categoryColor(_category);
+    final catIcon = SanctumTheme.categoryIcon(_category);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Set Budget')),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
+            // Category selector.
+            const _SectionLabel(label: 'Category'),
             DropdownButtonFormField<String>(
               initialValue: _category,
-              decoration: const InputDecoration(labelText: 'Category'),
-              items: kCategories
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                  .toList(),
+              decoration: const InputDecoration(),
+              dropdownColor: SanctumTheme.backgroundElevated,
+              items: kCategories.map((c) {
+                final color = SanctumTheme.categoryColor(c);
+                final icon = SanctumTheme.categoryIcon(c);
+                return DropdownMenuItem(
+                  value: c,
+                  child: Row(
+                    children: [
+                      Icon(icon, size: 16, color: color),
+                      const SizedBox(width: 10),
+                      Text(c),
+                    ],
+                  ),
+                );
+              }).toList(),
               onChanged: (v) => setState(() => _category = v!),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            // Selected category preview badge.
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: catColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: catColor.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: catColor.withValues(alpha: 0.20),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(catIcon, size: 20, color: catColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    _category,
+                    style: TextStyle(
+                      color: catColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Monthly limit — hero field.
+            const _SectionLabel(label: 'Monthly Limit'),
             TextFormField(
               controller: _limitController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -123,9 +179,25 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                   RegExp(r'^\d{0,6}\.?\d{0,2}'),
                 ),
               ],
+              style: const TextStyle(
+                color: SanctumTheme.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
               decoration: const InputDecoration(
-                labelText: 'Monthly Limit (AUD)',
-                prefixText: '\$',
+                prefixText: r'$  ',
+                prefixStyle: TextStyle(
+                  color: SanctumTheme.accentIndigo,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+                hintText: '0.00',
+                hintStyle: TextStyle(
+                  color: SanctumTheme.textTertiary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Limit is required.';
@@ -134,10 +206,15 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            // Month input.
+            const _SectionLabel(label: 'Month'),
             TextFormField(
               initialValue: _month,
-              decoration: const InputDecoration(labelText: 'Month (YYYY-MM)'),
+              decoration: const InputDecoration(
+                hintText: 'YYYY-MM',
+              ),
               onChanged: (v) => _month = v.trim(),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Month is required.';
@@ -154,14 +231,42 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
+
+            // Save button or loading indicator.
             _saving
                 ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text('Save Budget'),
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _submit,
+                      child: const Text('Save Budget'),
+                    ),
                   ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small uppercase section label used above form inputs.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        label.toUpperCase(),
+        style: const TextStyle(
+          color: SanctumTheme.textTertiary,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.0,
         ),
       ),
     );

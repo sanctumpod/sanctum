@@ -44,6 +44,57 @@ Column header names are case-insensitive. Unknown columns are silently ignored.
 
 ---
 
+## What Happens in the User's SOLID Pod
+
+This is the core contract the whole feature is built around. Every imported CSV row ends up as a **separate encrypted Turtle file** on the authenticated user's SOLID Pod at `solidcommunity.au`. Nothing is stored locally on the device.
+
+### Storage path per transaction
+
+```
+sanctum/
+└── transactions/
+    └── tx_<uuid>.enc.ttl   ← one file per imported CSV row
+```
+
+`<uuid>` is a freshly generated UUID v4 assigned at import time by `importMany()` in the provider. The file name format matches what `AddTransactionScreen` already writes, so imported and manually-entered transactions are indistinguishable at the storage layer.
+
+### File format
+
+Each `.enc.ttl` file is an **AES-encrypted Turtle RDF graph** written by `solidpod`'s `writePod(path, content, encrypted: true)`. Before encryption the plaintext Turtle looks like this:
+
+```turtle
+@prefix fin: <http://sanctum.app/finance#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<#tx> a fin:Transaction ;
+    fin:id       "a1b2c3d4-..." ;
+    fin:amount   "42.50"^^xsd:decimal ;
+    fin:merchant "Woolworths" ;
+    fin:category "Groceries" ;
+    fin:date     "2026-01-15"^^xsd:date ;
+    fin:notes    "Weekly shop" .
+```
+
+### Call chain (CSV row → Pod file)
+
+```
+CsvParser.parseTransactions(csvText)
+  → List<Transaction> (id = '' placeholder)
+
+TransactionListNotifier.importMany(transactions)
+  → for each tx: PodService.saveTransaction(tx.copyWith(id: uuid.v4()))
+      → writePod('transactions/tx_<uuid>.enc.ttl', _transactionToTurtle(tx), encrypted: true)
+          → solidpod encrypts + writes to Pod over HTTPS
+
+ref.invalidateSelf()
+  → UI re-reads PodService.loadAllTransactions()
+  → Transactions screen now shows all imported rows
+```
+
+**No CSV data is ever retained in the app after import completes.** The in-memory `_preview` list in `ImportCsvScreen` is discarded when the screen pops.
+
+---
+
 ## File Structure
 
 ### New files to create
@@ -640,11 +691,17 @@ class TransactionListNotifier extends AsyncNotifier<List<Transaction>> {
     ref.invalidateSelf();
   }
 
-  /// Saves every transaction in [transactions] to the Pod, assigning fresh UUIDs.
+  /// Saves every transaction in [transactions] to the user's SOLID Pod.
   ///
-  /// Each transaction is written individually via [PodService.saveTransaction].
-  /// The list is refreshed once after all writes complete.
-  /// Throws [AppError] on the first Pod write failure.
+  /// Each [Transaction] is written as an individual encrypted Turtle file at
+  /// `sanctum/transactions/tx_<uuid>.enc.ttl` on the Pod, via
+  /// [PodService.saveTransaction]. A fresh UUID v4 is assigned to each
+  /// transaction here because the CSV parser produces placeholder empty IDs.
+  ///
+  /// The provider invalidates itself after all writes so the Transactions
+  /// screen immediately re-reads the Pod and shows the newly imported rows.
+  ///
+  /// Throws [AppError.networkError] on the first failed Pod write.
   Future<void> importMany(List<Transaction> transactions) async {
     const uuid = Uuid();
     final service = ref.read(podServiceProvider);
@@ -834,7 +891,14 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
     });
   }
 
-  /// Saves all previewed transactions to the Pod.
+  /// Saves all previewed transactions to the user's SOLID Pod.
+  ///
+  /// Calls [TransactionListNotifier.importMany], which writes one encrypted
+  /// Turtle file per transaction to `sanctum/transactions/tx_<uuid>.enc.ttl`
+  /// on the Pod via `solidpod`'s `writePod`. On success the screen pops and
+  /// the Transactions screen re-reads the Pod — imported rows appear inline
+  /// with any manually-entered transactions. On [AppError], the screen stays
+  /// open so the user can retry or pick a different file.
   Future<void> _confirmImport() async {
     setState(() => _state = _ImportState.importing);
 
@@ -1426,7 +1490,8 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 | Parse validation (missing columns, invalid rows) | Task 2 (parser + tests) |
 | Preview list before confirming | Task 4 (`_PreviewView`) |
 | Skip invalid rows with count shown | Task 2 + Task 4 banner |
-| Save each transaction to Pod via existing service | Task 3 (`importMany`) |
+| **Each CSV row written as an encrypted Turtle file to the user's SOLID Pod** | Task 3 (`importMany` → `PodService.saveTransaction` → `writePod`) — see "What Happens in the User's SOLID Pod" section |
+| Pod file path: `sanctum/transactions/tx_<uuid>.enc.ttl` | Task 3 (`uuid.v4()` assigned in `importMany`; path built in `PodService.saveTransaction`) |
 | Refresh UI after import | Task 3 (`ref.invalidateSelf()`) |
 | Entry point visible on Transactions screen | Task 5 (AppBar icon button) |
 

@@ -30,6 +30,7 @@ import 'package:flutter/material.dart';
 
 // Group 2: Third-party package imports.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 // Group 3: Local package imports.
 import 'package:sanctum/models/budget_progress.dart';
@@ -47,9 +48,7 @@ class BudgetsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch load/error state from the async notifier.
     final asyncBudgets = ref.watch(budgetListProvider);
-    // Derived list of budgets with computed spend totals.
     final progressList = ref.watch(budgetProgressProvider);
 
     return Scaffold(
@@ -60,13 +59,10 @@ class BudgetsScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(budgetListProvider),
         ),
         data: (_) {
-          if (progressList.isEmpty) {
-            return const _EmptyState();
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
+          if (progressList.isEmpty) return const _EmptyState();
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
             itemCount: progressList.length,
-            separatorBuilder: (context, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) =>
                 _BudgetCard(progress: progressList[index]),
           );
@@ -75,9 +71,7 @@ class BudgetsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
           context,
-          MaterialPageRoute<void>(
-            builder: (_) => const AddBudgetScreen(),
-          ),
+          MaterialPageRoute<void>(builder: (_) => const AddBudgetScreen()),
         ),
         tooltip: 'Set Budget',
         child: const Icon(Icons.add),
@@ -85,6 +79,162 @@ class BudgetsScreen extends ConsumerWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Budget card
+// ---------------------------------------------------------------------------
+
+/// Card displaying a single budget's category icon, progress bar, and amounts.
+class _BudgetCard extends StatelessWidget {
+  const _BudgetCard({required this.progress});
+
+  final BudgetProgress progress;
+
+  /// Returns the semantic colour for the current spend fraction.
+  Color _statusColor() {
+    if (progress.isOverBudget) return SanctumTheme.semanticError;
+    if (progress.fraction >= 0.75) return SanctumTheme.semanticWarning;
+    return SanctumTheme.semanticSuccess;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currencyFmt = NumberFormat.currency(locale: 'en_AU', symbol: r'$');
+    final budget = progress.budget;
+    final statusColor = _statusColor();
+    final catColor = SanctumTheme.categoryColor(budget.category);
+    final catIcon = SanctumTheme.categoryIcon(budget.category);
+    final pct = (progress.fraction * 100).round();
+    final remaining = budget.monthlyLimit - progress.spent;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: SanctumTheme.backgroundCard,
+        borderRadius: BorderRadius.circular(SanctumTheme.cardRadius),
+        border: Border.all(color: SanctumTheme.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row — icon, category/month, percentage badge.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                // Category icon badge.
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: catColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(catIcon, size: 20, color: catColor),
+                ),
+                const SizedBox(width: 12),
+
+                // Category name and month.
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        budget.category,
+                        style: const TextStyle(
+                          color: SanctumTheme.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        budget.month,
+                        style: const TextStyle(
+                          color: SanctumTheme.textTertiary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Percentage chip.
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '$pct%',
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Progress track.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: progress.fraction,
+                minHeight: 6,
+                backgroundColor: SanctumTheme.backgroundElevated,
+                valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Amount row — spent / limit and remaining.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${currencyFmt.format(progress.spent)} of '
+                  '${currencyFmt.format(budget.monthlyLimit)}',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  progress.isOverBudget
+                      ? '${currencyFmt.format(progress.spent - budget.monthlyLimit)} over'
+                      : '${currencyFmt.format(remaining)} left',
+                  style: TextStyle(
+                    color: progress.isOverBudget
+                        ? SanctumTheme.semanticError
+                        : SanctumTheme.textTertiary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Empty and error states
+// ---------------------------------------------------------------------------
 
 /// Empty state shown when the user has no budgets yet.
 class _EmptyState extends StatelessWidget {
@@ -96,12 +246,20 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.pie_chart_outline,
-            size: 64,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: SanctumTheme.accentIndigo.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.pie_chart_outline,
+              size: 32,
+              color: SanctumTheme.accentIndigo,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             'No budgets yet.',
             style: Theme.of(context).textTheme.titleMedium,
@@ -109,7 +267,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Tap + to set your first monthly budget.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
@@ -121,98 +279,32 @@ class _EmptyState extends StatelessWidget {
 class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.message, required this.onRetry});
 
-  /// The raw error message for debugging context.
   final String message;
-
-  /// Callback invoked when the user presses Retry.
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: SanctumTheme.semanticError),
-            const SizedBox(height: 12),
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 40,
+              color: SanctumTheme.textTertiary,
+            ),
+            const SizedBox(height: 16),
             Text(
               'Could not load budgets.',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Card displaying a single budget's progress bar and spend summary.
-class _BudgetCard extends StatelessWidget {
-  const _BudgetCard({required this.progress});
-
-  /// The budget and computed spend data to display.
-  final BudgetProgress progress;
-
-  /// Resolves the progress bar colour from the current spend fraction.
-  Color _barColour() {
-    if (progress.isOverBudget) return SanctumTheme.semanticError;
-    if (progress.fraction >= 0.75) return SanctumTheme.semanticWarning;
-    return SanctumTheme.semanticSuccess;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final budget = progress.budget;
-    final barColour = _barColour();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Category and month header.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  budget.category,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Text(
-                  budget.month,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Colour-coded progress bar.
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress.fraction,
-                minHeight: 8,
-                backgroundColor:
-                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
-                valueColor: AlwaysStoppedAnimation<Color>(barColour),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Spend summary label.
-            Text(
-              'Spent \$${progress.spent.toStringAsFixed(2)}'
-              ' of \$${budget.monthlyLimit.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: barColour,
-                  ),
             ),
           ],
         ),

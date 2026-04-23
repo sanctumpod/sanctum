@@ -127,8 +127,11 @@ class PodService {
       return results..sort((a, b) => b.date.compareTo(a.date));
     } catch (e) {
       if (e is AppError) rethrow;
+      // Log the real error so it appears in the debug console.
       debugPrint('loadAllTransactions error: $e');
-      return [];
+      // Re-throw so the provider enters error state rather than silently
+      // returning an empty list, which makes failures invisible to the user.
+      throw AppError.networkError;
     }
   }
 

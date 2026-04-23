@@ -31,12 +31,14 @@ import 'package:flutter/services.dart';
 
 // Group 2: Third-party package imports.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 // Group 3: Local package imports.
 import 'package:sanctum/models/bill_reminder.dart';
 import 'package:sanctum/providers/bill_providers.dart';
 import 'package:sanctum/services/app_error.dart';
+import 'package:sanctum/theme/app_theme.dart';
 
 /// Available recurrence options for bill reminders.
 const List<String> kRecurrenceOptions = ['one-off', 'monthly'];
@@ -63,6 +65,8 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
   String _recurrence = kRecurrenceOptions.first;
   bool _saving = false;
 
+  final _dateFmt = DateFormat('d MMM yyyy');
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -77,6 +81,14 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
       initialDate: _dueDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 3650)),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: SanctumTheme.accentIndigo,
+              ),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) setState(() => _dueDate = picked);
   }
@@ -116,18 +128,25 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
+            // Bill name.
+            const _SectionLabel(label: 'Bill Name'),
             TextFormField(
               controller: _nameController,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Bill Name'),
+              decoration: const InputDecoration(
+                hintText: 'e.g. Netflix, Electricity…',
+              ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Name is required.';
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            // Amount — hero field.
+            const _SectionLabel(label: 'Amount'),
             TextFormField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -136,9 +155,25 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                   RegExp(r'^\d{0,6}\.?\d{0,2}'),
                 ),
               ],
+              style: const TextStyle(
+                color: SanctumTheme.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
               decoration: const InputDecoration(
-                labelText: 'Amount (AUD)',
-                prefixText: '\$',
+                prefixText: r'$  ',
+                prefixStyle: TextStyle(
+                  color: SanctumTheme.accentIndigo,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+                hintText: '0.00',
+                hintStyle: TextStyle(
+                  color: SanctumTheme.textTertiary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Amount is required.';
@@ -147,32 +182,158 @@ class _AddBillScreenState extends ConsumerState<AddBillScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Due Date'),
-              subtitle: Text(
-                '${_dueDate.day}/${_dueDate.month}/${_dueDate.year}',
-              ),
-              trailing: const Icon(Icons.calendar_today),
+            const SizedBox(height: 20),
+
+            // Due date picker.
+            const _SectionLabel(label: 'Due Date'),
+            _DatePickerField(
+              displayValue: _dateFmt.format(_dueDate),
               onTap: _pickDueDate,
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _recurrence,
-              decoration: const InputDecoration(labelText: 'Recurrence'),
-              items: kRecurrenceOptions
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                  .toList(),
-              onChanged: (v) => setState(() => _recurrence = v!),
+            const SizedBox(height: 20),
+
+            // Recurrence toggle.
+            const _SectionLabel(label: 'Recurrence'),
+            Row(
+              children: kRecurrenceOptions.map((r) {
+                final selected = r == _recurrence;
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: r == kRecurrenceOptions.first ? 8 : 0,
+                    ),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _recurrence = r),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? SanctumTheme.accentIndigo.withValues(alpha: 0.15)
+                              : SanctumTheme.backgroundCard,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selected
+                                ? SanctumTheme.accentIndigo.withValues(alpha: 0.5)
+                                : SanctumTheme.cardBorder,
+                            width: selected ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              r == 'monthly'
+                                  ? Icons.repeat
+                                  : Icons.receipt_outlined,
+                              size: 20,
+                              color: selected
+                                  ? SanctumTheme.accentIndigo
+                                  : SanctumTheme.textTertiary,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              r == 'monthly' ? 'Monthly' : 'One-off',
+                              style: TextStyle(
+                                color: selected
+                                    ? SanctumTheme.accentIndigo
+                                    : SanctumTheme.textTertiary,
+                                fontSize: 13,
+                                fontWeight: selected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
+
+            // Save button or loading indicator.
             _saving
                 ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text('Save Bill Reminder'),
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _submit,
+                      child: const Text('Save Bill Reminder'),
+                    ),
                   ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small uppercase section label used above form inputs.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        label.toUpperCase(),
+        style: const TextStyle(
+          color: SanctumTheme.textTertiary,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.0,
+        ),
+      ),
+    );
+  }
+}
+
+/// Tappable field that displays the selected date and opens a picker.
+class _DatePickerField extends StatelessWidget {
+  const _DatePickerField({
+    required this.displayValue,
+    required this.onTap,
+  });
+
+  final String displayValue;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: SanctumTheme.backgroundCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: SanctumTheme.cardBorder),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_today_outlined,
+              size: 16,
+              color: SanctumTheme.textTertiary,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              displayValue,
+              style: const TextStyle(
+                color: SanctumTheme.textPrimary,
+                fontSize: 15,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: SanctumTheme.textTertiary,
+            ),
           ],
         ),
       ),
