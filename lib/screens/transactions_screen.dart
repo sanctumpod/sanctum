@@ -36,6 +36,7 @@ import 'package:intl/intl.dart';
 import 'package:sanctum/models/transaction.dart';
 import 'package:sanctum/providers/transaction_providers.dart';
 import 'package:sanctum/screens/add_transaction_screen.dart';
+import 'package:sanctum/screens/import_csv_screen.dart';
 import 'package:sanctum/services/app_error.dart';
 
 /// Displays all transactions from the user's Pod with swipe-to-delete.
@@ -48,6 +49,22 @@ class TransactionsScreen extends ConsumerWidget {
     final asyncTransactions = ref.watch(transactionListProvider);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Transactions'),
+        actions: [
+          // Import from CSV button.
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Import CSV',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => const ImportCsvScreen(),
+              ),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
           context,
