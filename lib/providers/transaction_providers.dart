@@ -27,6 +27,7 @@ library;
 
 // Group 2: Third-party package imports.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 // Group 3: Local package imports.
 import 'package:sanctum/models/transaction.dart';
@@ -43,6 +44,27 @@ class TransactionListNotifier extends AsyncNotifier<List<Transaction>> {
   /// Saves [tx] to the Pod and refreshes the transaction list.
   Future<void> add(Transaction tx) async {
     await ref.read(podServiceProvider).saveTransaction(tx);
+    ref.invalidateSelf();
+  }
+
+  /// Saves every transaction in [transactions] to the user's SOLID Pod.
+  ///
+  /// Each [Transaction] is written as an individual encrypted Turtle file at
+  /// `sanctum/transactions/tx_<uuid>.enc.ttl` on the Pod, via
+  /// [PodService.saveTransaction]. A fresh UUID v4 is assigned to each
+  /// transaction here because the CSV parser produces placeholder empty IDs.
+  ///
+  /// The provider invalidates itself after all writes so the Transactions
+  /// screen immediately re-reads the Pod and shows the newly imported rows.
+  ///
+  /// Throws [AppError.networkError] on the first failed Pod write.
+  Future<void> importMany(List<Transaction> transactions) async {
+    const uuid = Uuid();
+    final service = ref.read(podServiceProvider);
+    for (final tx in transactions) {
+      // Assign a real UUID — the parsed tx carries an empty placeholder id.
+      await service.saveTransaction(tx.copyWith(id: uuid.v4()));
+    }
     ref.invalidateSelf();
   }
 
