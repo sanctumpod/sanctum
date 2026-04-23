@@ -25,7 +25,7 @@
 
 library;
 
-// Group 3: Local package imports.
+// Local package imports.
 import 'package:sanctum/constants/csv_fields.dart';
 import 'package:sanctum/models/transaction.dart';
 
