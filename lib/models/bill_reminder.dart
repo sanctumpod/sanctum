@@ -42,7 +42,11 @@ class BillReminder {
     required this.isPaid,
     this.notificationDate,
     this.paidDate,
-  });
+  }) : assert(amount >= 0, 'amount must be non-negative.'),
+       assert(
+         recurrence == 'one-off' || recurrence == 'monthly',
+         'recurrence must be "one-off" or "monthly".',
+       );
 
   /// Unique identifier — UUID v4.
   final String id;

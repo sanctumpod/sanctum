@@ -97,5 +97,33 @@ void main() {
       final updated = baseWithNotif.copyWith(isPaid: true);
       expect(updated.notificationDate, notifDate);
     });
+
+    test('throws on negative amount', () {
+      expect(
+        () => BillReminder(
+          id: 'r-bad',
+          name: 'Bad',
+          amount: -1.0,
+          dueDate: DateTime(2026, 5, 1),
+          recurrence: 'monthly',
+          isPaid: false,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('throws on invalid recurrence', () {
+      expect(
+        () => BillReminder(
+          id: 'r-bad',
+          name: 'Bad',
+          amount: 10.0,
+          dueDate: DateTime(2026, 5, 1),
+          recurrence: 'weekly',
+          isPaid: false,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
   });
 }
