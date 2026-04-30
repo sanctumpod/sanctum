@@ -402,6 +402,12 @@ class PodService {
 
   /// Serialises [reminder] to a Turtle string using the `fin:` namespace.
   String _reminderToTurtle(BillReminder reminder) {
+    final notifLine = reminder.notificationDate != null
+        ? '    fin:notificationDate "${reminder.notificationDate!.toIso8601String()}"^^xsd:dateTime ;\n'
+        : '';
+    final paidLine = reminder.paidDate != null
+        ? '    fin:paidDate "${reminder.paidDate!.toIso8601String()}"^^xsd:dateTime ;\n'
+        : '';
     return '''
 @prefix fin: <$_fin> .
 @prefix xsd: <$_xsd> .
@@ -412,7 +418,7 @@ class PodService {
     fin:amount     "${reminder.amount.toStringAsFixed(2)}"^^xsd:decimal ;
     fin:dueDate    "${reminder.dueDate.toIso8601String().substring(0, 10)}"^^xsd:date ;
     fin:recurrence "${reminder.recurrence}" ;
-    fin:isPaid     "${reminder.isPaid}"^^xsd:boolean .
+${notifLine}${paidLine}    fin:isPaid     "${reminder.isPaid}"^^xsd:boolean .
 ''';
   }
 
@@ -423,6 +429,8 @@ class PodService {
     try {
       final g = Graph();
       g.parseTurtle(turtle);
+      final rawNotif = _getOptional(g, 'notificationDate');
+      final rawPaid = _getOptional(g, 'paidDate');
       return BillReminder(
         id: _get(g, 'id'),
         name: _get(g, 'name'),
@@ -430,6 +438,8 @@ class PodService {
         dueDate: DateTime.parse(_get(g, 'dueDate')),
         recurrence: _get(g, 'recurrence'),
         isPaid: _get(g, 'isPaid') == 'true',
+        notificationDate: rawNotif != null ? DateTime.parse(rawNotif) : null,
+        paidDate: rawPaid != null ? DateTime.parse(rawPaid) : null,
       );
     } catch (_) {
       throw AppError.parseError;
@@ -450,4 +460,14 @@ class PodService {
   /// Extracts the value of the first triple whose predicate ends with [pred].
   String _get(Graph g, String pred) =>
       g.triples.firstWhere((t) => t.pre.value.endsWith(pred)).obj.value;
+
+  /// Returns the value of the first triple whose predicate ends with [pred],
+  /// or null if no such triple exists.
+  String? _getOptional(Graph g, String pred) {
+    try {
+      return g.triples.firstWhere((t) => t.pre.value.endsWith(pred)).obj.value;
+    } catch (_) {
+      return null;
+    }
+  }
 }
