@@ -40,6 +40,8 @@ class BillReminder {
     required this.dueDate,
     required this.recurrence,
     required this.isPaid,
+    this.notificationDate,
+    this.paidDate,
   });
 
   /// Unique identifier — UUID v4.
@@ -60,6 +62,12 @@ class BillReminder {
   /// Whether this bill has been marked as paid.
   final bool isPaid;
 
+  /// Optional date when a notification should be sent for this bill.
+  final DateTime? notificationDate;
+
+  /// Optional date when this bill was marked as paid.
+  final DateTime? paidDate;
+
   /// Returns a copy of this bill reminder with the given fields replaced.
   BillReminder copyWith({
     String? id,
@@ -68,6 +76,8 @@ class BillReminder {
     DateTime? dueDate,
     String? recurrence,
     bool? isPaid,
+    DateTime? notificationDate,
+    DateTime? paidDate,
   }) {
     return BillReminder(
       id: id ?? this.id,
@@ -76,6 +86,8 @@ class BillReminder {
       dueDate: dueDate ?? this.dueDate,
       recurrence: recurrence ?? this.recurrence,
       isPaid: isPaid ?? this.isPaid,
+      notificationDate: notificationDate ?? this.notificationDate,
+      paidDate: paidDate ?? this.paidDate,
     );
   }
 
@@ -88,8 +100,19 @@ class BillReminder {
           other.amount == amount &&
           other.dueDate == dueDate &&
           other.recurrence == recurrence &&
-          other.isPaid == isPaid;
+          other.isPaid == isPaid &&
+          other.notificationDate == notificationDate &&
+          other.paidDate == paidDate;
 
   @override
-  int get hashCode => Object.hash(id, name, amount, dueDate, recurrence, isPaid);
+  int get hashCode => Object.hash(
+        id,
+        name,
+        amount,
+        dueDate,
+        recurrence,
+        isPaid,
+        notificationDate,
+        paidDate,
+      );
 }

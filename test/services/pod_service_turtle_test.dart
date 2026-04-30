@@ -113,5 +113,74 @@ void main() {
       final decoded = svc.testReminderFromTurtle(turtle);
       expect(decoded.isPaid, isTrue);
     });
+
+    test('encodes notificationDate and paidDate when non-null', () {
+      final r = BillReminder(
+        id: 'r-001',
+        name: 'Electricity',
+        amount: 120.00,
+        dueDate: DateTime(2026, 5, 15),
+        recurrence: 'monthly',
+        isPaid: true,
+        notificationDate: DateTime(2026, 5, 12, 9, 0, 0),
+        paidDate: DateTime(2026, 5, 14, 15, 30, 0),
+      );
+      final turtle = svc.testReminderToTurtle(r);
+      expect(turtle, contains('fin:notificationDate'));
+      expect(turtle, contains('fin:paidDate'));
+      expect(turtle, contains('2026-05-12T09:00:00.000'));
+      expect(turtle, contains('2026-05-14T15:30:00.000'));
+    });
+
+    test('omits notificationDate and paidDate predicates when null', () {
+      final r = BillReminder(
+        id: 'r-002',
+        name: 'Internet',
+        amount: 80.00,
+        dueDate: DateTime(2026, 5, 20),
+        recurrence: 'monthly',
+        isPaid: false,
+      );
+      final turtle = svc.testReminderToTurtle(r);
+      expect(turtle, isNot(contains('fin:notificationDate')));
+      expect(turtle, isNot(contains('fin:paidDate')));
+    });
+
+    test('round-trip preserves notificationDate and paidDate', () {
+      final notif = DateTime(2026, 5, 12, 9, 0, 0);
+      final paid = DateTime(2026, 5, 14, 15, 30, 0);
+      final r = BillReminder(
+        id: 'r-003',
+        name: 'Gas',
+        amount: 90.00,
+        dueDate: DateTime(2026, 5, 15),
+        recurrence: 'one-off',
+        isPaid: true,
+        notificationDate: notif,
+        paidDate: paid,
+      );
+      final decoded = svc.testReminderFromTurtle(svc.testReminderToTurtle(r));
+      expect(decoded.notificationDate, notif);
+      expect(decoded.paidDate, paid);
+    });
+
+    test('parses old BillReminder Turtle without notificationDate or paidDate', () {
+      const oldTurtle = '''
+@prefix fin: <http://sanctum.app/finance#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<#reminder> a fin:BillReminder ;
+    fin:id         "r-legacy" ;
+    fin:name       "Old Bill" ;
+    fin:amount     "50.00"^^xsd:decimal ;
+    fin:dueDate    "2026-03-01"^^xsd:date ;
+    fin:recurrence "one-off" ;
+    fin:isPaid     "false"^^xsd:boolean .
+''';
+      final decoded = svc.testReminderFromTurtle(oldTurtle);
+      expect(decoded.id, 'r-legacy');
+      expect(decoded.notificationDate, isNull);
+      expect(decoded.paidDate, isNull);
+    });
   });
 }
