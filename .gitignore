@@ -48,3 +48,6 @@ app.*.map.json
 .env
 test_credentials.json
 integration_test/fixtures/
+
+# Git worktrees
+.worktrees/
