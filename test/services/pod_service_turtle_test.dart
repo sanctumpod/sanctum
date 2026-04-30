@@ -103,6 +103,7 @@ void main() {
       expect(decoded.id, reminder.id);
       expect(decoded.name, reminder.name);
       expect(decoded.amount, reminder.amount);
+      expect(decoded.dueDate, reminder.dueDate);
       expect(decoded.recurrence, reminder.recurrence);
       expect(decoded.isPaid, isFalse);
     });
