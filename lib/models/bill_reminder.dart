@@ -42,7 +42,11 @@ class BillReminder {
     required this.isPaid,
     this.notificationDate,
     this.paidDate,
-  });
+  }) : assert(amount >= 0, 'amount must be non-negative.'),
+       assert(
+         recurrence == 'one-off' || recurrence == 'monthly',
+         'recurrence must be "one-off" or "monthly".',
+       );
 
   /// Unique identifier — UUID v4.
   final String id;
@@ -62,10 +66,10 @@ class BillReminder {
   /// Whether this bill has been marked as paid.
   final bool isPaid;
 
-  /// Optional date when a notification should be sent for this bill.
+  /// DateTime the local notification was dispatched. Null until fired.
   final DateTime? notificationDate;
 
-  /// Optional date when this bill was marked as paid.
+  /// DateTime the user tapped "Mark as Paid". Null until paid.
   final DateTime? paidDate;
 
   /// Returns a copy of this bill reminder with the given fields replaced.
@@ -76,8 +80,8 @@ class BillReminder {
     DateTime? dueDate,
     String? recurrence,
     bool? isPaid,
-    DateTime? notificationDate,
-    DateTime? paidDate,
+    Object? notificationDate = const _Sentinel(),
+    Object? paidDate = const _Sentinel(),
   }) {
     return BillReminder(
       id: id ?? this.id,
@@ -86,8 +90,10 @@ class BillReminder {
       dueDate: dueDate ?? this.dueDate,
       recurrence: recurrence ?? this.recurrence,
       isPaid: isPaid ?? this.isPaid,
-      notificationDate: notificationDate ?? this.notificationDate,
-      paidDate: paidDate ?? this.paidDate,
+      notificationDate: notificationDate is _Sentinel
+          ? this.notificationDate
+          : notificationDate as DateTime?,
+      paidDate: paidDate is _Sentinel ? this.paidDate : paidDate as DateTime?,
     );
   }
 
@@ -115,4 +121,9 @@ class BillReminder {
         notificationDate,
         paidDate,
       );
+}
+
+/// Sentinel value to distinguish "field not provided" from "field set to null".
+class _Sentinel {
+  const _Sentinel();
 }

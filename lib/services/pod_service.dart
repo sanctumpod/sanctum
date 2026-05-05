@@ -461,11 +461,14 @@ ${notifLine}${paidLine}    fin:isPaid     "${reminder.isPaid}"^^xsd:boolean .
   String _get(Graph g, String pred) =>
       g.triples.firstWhere((t) => t.pre.value.endsWith(pred)).obj.value;
 
-  /// Returns the value of the first triple whose predicate ends with [pred],
-  /// or null if no such triple exists.
+  /// Returns the value of the first triple whose predicate matches the full
+  /// [fin:pred] URI, or null if no such triple exists.
   String? _getOptional(Graph g, String pred) {
     try {
-      return g.triples.firstWhere((t) => t.pre.value.endsWith(pred)).obj.value;
+      return g.triples
+          .firstWhere((t) => t.pre.value == '$_fin$pred')
+          .obj
+          .value;
     } catch (_) {
       return null;
     }

@@ -34,6 +34,7 @@ import 'package:solidpod/solidpod.dart' show getWebId;
 import 'package:solidui/solidui.dart';
 
 // Group 3: Local package imports.
+import 'package:sanctum/providers/nav_provider.dart';
 import 'package:sanctum/screens/bills_screen.dart';
 import 'package:sanctum/screens/budgets_screen.dart';
 import 'package:sanctum/screens/dashboard_screen.dart';
@@ -97,6 +98,9 @@ class _HomeState extends ConsumerState<Home> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch the selected tab index so the scaffold highlights the correct item.
+    final selectedTab = ref.watch(selectedTabProvider);
+
     return SolidScaffold(
       userInfo: SolidNavUserInfo(
         webId: _webId,
@@ -111,6 +115,11 @@ class _HomeState extends ConsumerState<Home> {
               setState(() => _isKeySaved = status),
         ),
       ),
+      // Keep selectedIndex in sync with the Riverpod provider so that
+      // insight card taps can switch tabs programmatically.
+      selectedIndex: selectedTab,
+      onMenuSelected: (index) =>
+          ref.read(selectedTabProvider.notifier).setTab(index),
       menu: const [
         SolidMenuItem(
           title: 'Dashboard',

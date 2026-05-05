@@ -63,8 +63,10 @@ class BillReminderListNotifier extends AsyncNotifier<List<BillReminder>> {
     final svc = ref.read(podServiceProvider);
     final reminder = state.value!.firstWhere((r) => r.id == id);
 
-    // Overwrite the Pod file with isPaid = true.
-    await svc.updateBillReminder(reminder.copyWith(isPaid: true));
+    // Overwrite the Pod file with isPaid = true and record the paid date.
+    await svc.updateBillReminder(
+      reminder.copyWith(isPaid: true, paidDate: DateTime.now()),
+    );
 
     if (reminder.recurrence == 'monthly') {
       final due = reminder.dueDate;
@@ -89,7 +91,8 @@ class BillReminderListNotifier extends AsyncNotifier<List<BillReminder>> {
   /// Schedules a local notification 3 days before [r.dueDate].
   ///
   /// Silently skips on web or unsupported desktop platforms, or if the
-  /// notification date is already past.
+  /// notification date is already past. Records the scheduled notification
+  /// date in the Pod for audit trail purposes.
   Future<void> _scheduleNotification(BillReminder r) async {
     // Web does not support local notifications.
     if (kIsWeb) return;
@@ -112,6 +115,10 @@ class BillReminderListNotifier extends AsyncNotifier<List<BillReminder>> {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      // Record the scheduled notification date in the Pod.
+      await ref.read(podServiceProvider).updateBillReminder(
+        r.copyWith(notificationDate: notifyDate),
       );
     } catch (e) {
       // Notification scheduling failure must never crash the app.

@@ -55,5 +55,75 @@ void main() {
       expect(next.dueDate, DateTime(2026, 6, 1));
       expect(next.id, 'r-002');
     });
+
+    test('defaults notificationDate and paidDate to null', () {
+      final r = BillReminder(
+        id: 'r-001',
+        name: 'Netflix',
+        amount: 22.99,
+        dueDate: DateTime(2026, 5, 1),
+        recurrence: 'monthly',
+        isPaid: false,
+      );
+      expect(r.notificationDate, isNull);
+      expect(r.paidDate, isNull);
+    });
+
+    test('copyWith sets paidDate', () {
+      final paid = DateTime(2026, 5, 3);
+      final updated = base.copyWith(isPaid: true, paidDate: paid);
+      expect(updated.paidDate, paid);
+      expect(updated.isPaid, isTrue);
+      expect(updated.notificationDate, isNull);
+    });
+
+    test('copyWith sets notificationDate', () {
+      final notifDate = DateTime(2026, 4, 28);
+      final updated = base.copyWith(notificationDate: notifDate);
+      expect(updated.notificationDate, notifDate);
+    });
+
+    test('copyWith preserves existing notificationDate when not supplied', () {
+      final notifDate = DateTime(2026, 4, 28);
+      final baseWithNotif = BillReminder(
+        id: 'r-001',
+        name: 'Netflix',
+        amount: 22.99,
+        dueDate: DateTime(2026, 5, 1),
+        recurrence: 'monthly',
+        isPaid: false,
+        notificationDate: notifDate,
+      );
+      final updated = baseWithNotif.copyWith(isPaid: true);
+      expect(updated.notificationDate, notifDate);
+    });
+
+    test('throws on negative amount', () {
+      expect(
+        () => BillReminder(
+          id: 'r-bad',
+          name: 'Bad',
+          amount: -1.0,
+          dueDate: DateTime(2026, 5, 1),
+          recurrence: 'monthly',
+          isPaid: false,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('throws on invalid recurrence', () {
+      expect(
+        () => BillReminder(
+          id: 'r-bad',
+          name: 'Bad',
+          amount: 10.0,
+          dueDate: DateTime(2026, 5, 1),
+          recurrence: 'weekly',
+          isPaid: false,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
   });
 }

@@ -38,6 +38,8 @@ import 'package:sanctum/providers/budget_providers.dart';
 import 'package:sanctum/providers/dashboard_providers.dart';
 import 'package:sanctum/providers/transaction_providers.dart';
 import 'package:sanctum/theme/app_theme.dart';
+import 'package:sanctum/widgets/health_score_widget.dart';
+import 'package:sanctum/widgets/insights_widget.dart';
 
 /// The Dashboard tab showing spending chart, summaries, and budget warnings.
 class DashboardScreen extends ConsumerWidget {
@@ -63,6 +65,14 @@ class DashboardScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
+        // Financial health score summary.
+        const HealthScoreWidget(),
+        const SizedBox(height: 16),
+
+        // AI-generated insights feed.
+        const InsightsFeedWidget(),
+        const SizedBox(height: 16),
+
         // Hero spend block — total and date range toggle.
         _HeroSpendCard(
           totalSpent: totalSpent,
