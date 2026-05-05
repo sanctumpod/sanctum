@@ -31,12 +31,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sanctum/models/financial_intelligence_result.dart';
 import 'package:sanctum/providers/financial_intelligence_provider.dart';
+import 'package:sanctum/providers/nav_provider.dart';
 import 'package:sanctum/theme/app_theme.dart';
 
 /// Displays a feed of financial insights sorted by severity.
 class InsightsFeedWidget extends ConsumerWidget {
   /// Creates an [InsightsFeedWidget].
   const InsightsFeedWidget({super.key});
+
+  /// Maps an [InsightCategory] to the corresponding [NavIndex] tab index.
+  int _tabForCategory(InsightCategory category) => switch (category) {
+    InsightCategory.budget => NavIndex.budgets,
+    InsightCategory.bills => NavIndex.bills,
+    InsightCategory.spending => NavIndex.transactions,
+    InsightCategory.general => NavIndex.dashboard,
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,7 +71,14 @@ class InsightsFeedWidget extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
-            ...result.insights.map((insight) => _InsightCard(insight: insight)),
+            ...result.insights.map(
+              (insight) => _InsightCard(
+                insight: insight,
+                onTap: () => ref
+                    .read(selectedTabProvider.notifier)
+                    .setTab(_tabForCategory(insight.category)),
+              ),
+            ),
           ],
         );
       },
@@ -88,9 +104,12 @@ class _EmptyInsights extends StatelessWidget {
 
 /// A single insight card with severity-coloured icon and insight text.
 class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.insight});
+  const _InsightCard({required this.insight, required this.onTap});
 
   final InsightString insight;
+
+  /// Called when the card is tapped to navigate to the relevant tab.
+  final VoidCallback onTap;
 
   /// Returns the icon for the insight severity.
   IconData _icon() => switch (insight.severity) {
@@ -111,20 +130,30 @@ class _InsightCard extends StatelessWidget {
     final color = _color();
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(_icon(), color: color, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                insight.text,
-                style: Theme.of(context).textTheme.bodyMedium,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(SanctumTheme.cardRadius),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(_icon(), color: color, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  insight.text,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 12,
+                color: SanctumTheme.textTertiary,
+              ),
+            ],
+          ),
         ),
       ),
     );
