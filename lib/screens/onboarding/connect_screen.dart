@@ -30,7 +30,7 @@ import 'package:flutter/material.dart';
 import 'package:solidui/solidui.dart';
 
 import 'package:sanctum/constants/app.dart';
-import 'package:sanctum/home.dart';
+import 'package:sanctum/screens/onboarding/post_login_screen.dart';
 import 'package:sanctum/theme/app_theme.dart';
 
 /// The second onboarding screen where the user connects their private vault.
@@ -114,7 +114,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             actionTextColor: SanctumTheme.accentIndigo,
             borderRadius: SanctumTheme.cardRadius,
           ),
-          child: const Home(),
+          child: const PostLoginScreen(),
         ),
       ),
     );

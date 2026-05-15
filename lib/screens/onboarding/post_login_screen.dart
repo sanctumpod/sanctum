@@ -1,4 +1,4 @@
-/// Welcome screen shown to first-time users before connecting their vault.
+/// Post-login confirmation screen shown after successful vault connection.
 //
 // Time-stamp: <>
 //
@@ -29,17 +29,16 @@ library;
 import 'package:flutter/material.dart';
 
 // Group 3: Local package imports.
-import 'package:sanctum/screens/onboarding/connect_screen.dart';
+import 'package:sanctum/home.dart';
 import 'package:sanctum/theme/app_theme.dart';
 
-/// The first onboarding screen shown to users who have not yet connected
-/// a vault.
+/// The third onboarding screen, shown after [SolidLogin] completes successfully.
 ///
-/// Introduces the app and leads the user to [ConnectScreen] via a
-/// "Get Started" button.
-class WelcomeScreen extends StatelessWidget {
-  /// Creates the Welcome onboarding screen.
-  const WelcomeScreen({super.key});
+/// Confirms that the vault is connected and presents a "Start Using Sanctum"
+/// button that replaces the entire onboarding stack with [Home].
+class PostLoginScreen extends StatelessWidget {
+  /// Creates the post-login confirmation screen.
+  const PostLoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -54,65 +53,53 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(),
 
-              // App logo placeholder.
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: SanctumTheme.accentIndigo,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'S',
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: SanctumTheme.textOnAccent,
+              // Success icon.
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: SanctumTheme.semanticSuccess.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: SanctumTheme.semanticSuccess,
+                    size: 40,
                   ),
                 ),
               ),
 
               const SizedBox(height: 32),
 
-              // App name.
+              // Confirmation heading.
               Text(
-                'SANCTUM',
+                'Vault connected!',
                 style: Theme.of(context).textTheme.displayMedium,
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Tagline.
+              // Plain-English confirmation.
               Text(
-                'Your finances. Your data. Your rules.',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: SanctumTheme.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 24),
-
-              // Plain-English vault description — no technical terms.
-              Text(
-                'Sanctum keeps your spending records in a private storage '
-                'space that only you control — not on our servers.',
+                'Your private vault is all set. Your financial records will '
+                'be stored there — only you have access.',
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
 
               const Spacer(),
 
-          
-            // Get Started button — exact label required by sprint spec.
+              // Start Using Sanctum button — exact label required by sprint spec.
               ElevatedButton(
-                onPressed: () => Navigator.push(
+                onPressed: () => Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const ConnectScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const Home()),
+                  (_) => false,
                 ),
-                child: const Text('Get Started'),
+                child: const Text('Start Using Sanctum'),
               ),
 
               const SizedBox(height: 48),

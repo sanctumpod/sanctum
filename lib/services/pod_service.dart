@@ -110,11 +110,11 @@ class PodService {
           continue;
         }
 
-        // Skip error sentinel values returned by solidpod.
-        if (content == SolidFunctionCallStatus.fail.toString() ||
-            content == SolidFunctionCallStatus.notLoggedIn.toString()) {
-          continue;
+        // Skip unreadable files; throw on auth expiry so the UI can redirect.
+        if (content == SolidFunctionCallStatus.notLoggedIn.toString()) {
+          throw AppError.authExpired;
         }
+        if (content == SolidFunctionCallStatus.fail.toString()) continue;
 
         try {
           results.add(_transactionFromTurtle(content));
@@ -185,11 +185,11 @@ class PodService {
           continue;
         }
 
-        // Skip error sentinel values returned by solidpod.
-        if (content == SolidFunctionCallStatus.fail.toString() ||
-            content == SolidFunctionCallStatus.notLoggedIn.toString()) {
-          continue;
+        // Skip unreadable files; throw on auth expiry so the UI can redirect.
+        if (content == SolidFunctionCallStatus.notLoggedIn.toString()) {
+          throw AppError.authExpired;
         }
+        if (content == SolidFunctionCallStatus.fail.toString()) continue;
 
         try {
           results.add(_budgetFromTurtle(content));
@@ -254,11 +254,11 @@ class PodService {
           continue;
         }
 
-        // Skip error sentinel values returned by solidpod.
-        if (content == SolidFunctionCallStatus.fail.toString() ||
-            content == SolidFunctionCallStatus.notLoggedIn.toString()) {
-          continue;
+        // Skip unreadable files; throw on auth expiry so the UI can redirect.
+        if (content == SolidFunctionCallStatus.notLoggedIn.toString()) {
+          throw AppError.authExpired;
         }
+        if (content == SolidFunctionCallStatus.fail.toString()) continue;
 
         try {
           results.add(_reminderFromTurtle(content));

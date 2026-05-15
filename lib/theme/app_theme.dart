@@ -88,6 +88,21 @@ class SanctumTheme {
   /// Pink — spend indicator (from Figma).
   static const Color semanticPink = Color(0xFFE950A4);
 
+  // -- Financial Health Grade Palette -----------------------------------------
+  // PRD §3.3 palette — used by HealthScoreWidget and InsightsFeedWidget.
+
+  /// Score ≥ 80 — Excellent.
+  static const Color gradeExcellent = Color(0xFF4CAF50);
+
+  /// Score 60–79 — Good.
+  static const Color gradeGood = Color(0xFF1F4788);
+
+  /// Score 40–59 — Needs Attention.
+  static const Color gradeNeedsAttention = Color(0xFFFF9800);
+
+  /// Score 0–39 — At Risk.
+  static const Color gradeAtRisk = Color(0xFFF44336);
+
   // -- Card & Border ----------------------------------------------------------
 
   /// Subtle card border.

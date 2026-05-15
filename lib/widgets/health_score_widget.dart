@@ -33,6 +33,17 @@ import 'package:sanctum/models/financial_intelligence_result.dart';
 import 'package:sanctum/providers/financial_intelligence_provider.dart';
 import 'package:sanctum/theme/app_theme.dart';
 
+/// Returns the PRD grade palette colour for [score].
+///
+/// ≥80 → Excellent (green), ≥60 → Good (dark blue),
+/// ≥40 → Needs Attention (amber), <40 → At Risk (red).
+Color colorForScore(int score) => switch (score) {
+      >= 80 => SanctumTheme.gradeExcellent,
+      >= 60 => SanctumTheme.gradeGood,
+      >= 40 => SanctumTheme.gradeNeedsAttention,
+      _ => SanctumTheme.gradeAtRisk,
+    };
+
 /// Displays the overall financial health score with grade and pillar breakdown.
 class HealthScoreWidget extends ConsumerWidget {
   /// Creates a [HealthScoreWidget].
@@ -89,16 +100,9 @@ class _ScoreCard extends StatelessWidget {
   const _ScoreCard({required this.result});
   final FinancialIntelligenceResult result;
 
-  Color _gradeColor() => switch (result.grade) {
-        'Excellent' => SanctumTheme.semanticSuccess,
-        'Good' => SanctumTheme.accentIndigo,
-        'Needs Attention' => SanctumTheme.semanticWarning,
-        _ => SanctumTheme.semanticError,
-      };
-
   @override
   Widget build(BuildContext context) {
-    final gradeColor = _gradeColor();
+    final overallColor = colorForScore(result.overallScore);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -115,7 +119,7 @@ class _ScoreCard extends StatelessWidget {
                 Text(
                   '${result.overallScore}',
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: gradeColor,
+                        color: overallColor,
                         fontSize: 56,
                       ),
                 ),
@@ -126,7 +130,7 @@ class _ScoreCard extends StatelessWidget {
                     Text(
                       result.grade,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: gradeColor,
+                            color: overallColor,
                           ),
                     ),
                     Text(
@@ -138,22 +142,23 @@ class _ScoreCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
+            // Each pillar bar uses its own score-derived colour.
             _PillarRow(
               label: 'Budgets',
               score: result.budgetAdherenceScore,
-              color: gradeColor,
+              color: colorForScore(result.budgetAdherenceScore),
             ),
             const SizedBox(height: 8),
             _PillarRow(
               label: 'Bills',
               score: result.billReliabilityScore,
-              color: gradeColor,
+              color: colorForScore(result.billReliabilityScore),
             ),
             const SizedBox(height: 8),
             _PillarRow(
               label: 'Spending',
               score: result.spendingConsistencyScore,
-              color: gradeColor,
+              color: colorForScore(result.spendingConsistencyScore),
             ),
           ],
         ),

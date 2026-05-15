@@ -34,11 +34,16 @@ import 'package:solidpod/solidpod.dart' show getWebId;
 import 'package:solidui/solidui.dart';
 
 // Group 3: Local package imports.
+import 'package:sanctum/providers/bill_providers.dart';
+import 'package:sanctum/providers/budget_providers.dart';
 import 'package:sanctum/providers/nav_provider.dart';
+import 'package:sanctum/providers/transaction_providers.dart';
 import 'package:sanctum/screens/bills_screen.dart';
 import 'package:sanctum/screens/budgets_screen.dart';
 import 'package:sanctum/screens/dashboard_screen.dart';
+import 'package:sanctum/screens/onboarding/welcome_screen.dart';
 import 'package:sanctum/screens/transactions_screen.dart';
+import 'package:sanctum/services/app_error.dart';
 
 /// Main navigation host widget using [SolidScaffold].
 ///
@@ -96,10 +101,48 @@ class _HomeState extends ConsumerState<Home> {
     setState(() => _isKeySaved = keySaved);
   }
 
+  /// Handles an auth-expiry error from any data provider.
+  ///
+  /// Shows the session-expired snackbar and navigates back to [WelcomeScreen],
+  /// clearing the entire navigation stack.
+  void _handleAuthExpired() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppError.authExpired.userMessage),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+    SolidAuthHandler.instance.handleLogout(context);
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Watch the selected tab index so the scaffold highlights the correct item.
     final selectedTab = ref.watch(selectedTabProvider);
+
+    // Listen for auth-expiry errors on any of the three data providers and
+    // redirect the user back to the welcome screen so they can re-authenticate.
+    ref.listen(transactionListProvider, (_, next) {
+      if (next is AsyncError && next.error == AppError.authExpired) {
+        _handleAuthExpired();
+      }
+    });
+    ref.listen(budgetListProvider, (_, next) {
+      if (next is AsyncError && next.error == AppError.authExpired) {
+        _handleAuthExpired();
+      }
+    });
+    ref.listen(billReminderListProvider, (_, next) {
+      if (next is AsyncError && next.error == AppError.authExpired) {
+        _handleAuthExpired();
+      }
+    });
 
     return SolidScaffold(
       userInfo: SolidNavUserInfo(
